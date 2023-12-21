@@ -11,21 +11,24 @@ import {
 } from '../../Components/services/apiService';
 import { Button, Form } from 'react-bootstrap';
 
-export const MainProcessCompanyTable = ({ props }) => {
-  const handleEdit = (id) => {
-    goToProcessCompanyForm(id);
-  };
-
+export const MainProcessCompanyTable = () => {
+  const [data, setData] = useState([]);
   const navigate = useNavigate();
+
   const goToProcessCompanyForm = (id) => {
     navigate(`/ProcessCompanyForm/${id}`);
   };
 
-  const handleDelete = async (id) => {
-    const process = await deleteProcess(id);
+  const handleEdit = (id) => {
+    goToProcessCompanyForm(id);
   };
 
-  const [data, setData] = useState([]);
+  const handleDelete = async (id) => {
+    const deletedId = await deleteProcess(id);
+    const remainingProcesses = data.filter((sub) => sub.id !== deletedId);
+    setData(remainingProcesses);
+  };
+
   useEffect(() => {
     const getAllProcess = async () => {
       const processes = await getProcesses();
@@ -34,7 +37,7 @@ export const MainProcessCompanyTable = ({ props }) => {
     getAllProcess();
   }, []);
 
-  const handleClick = () => goToProcessCompanyForm('new');
+  const handleClickNewProcess = () => goToProcessCompanyForm('new');
 
   return (
     <Fragment>
@@ -44,8 +47,8 @@ export const MainProcessCompanyTable = ({ props }) => {
       <Container fluid="md">
         <Row>
           <Form>
-            <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
-              <Button variant="primary" onClick={handleClick}>
+            <Form.Group className="mb-3" controlId="ControlInputNewProcess">
+              <Button variant="primary" onClick={handleClickNewProcess}>
                 Novo Processo
               </Button>
               &nbsp;

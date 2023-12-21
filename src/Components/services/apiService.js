@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+// const API_URL_CompanyProcesses = 'http://localhost:8080/CompanyProcesses';
+// const API_URL_Areas = 'http://localhost:8080/Areas';
 const API_URL_CompanyProcesses = 'http://localhost:17701/CompanyProcesses';
 const API_URL_Areas = 'http://localhost:17701/Areas';
 
@@ -24,8 +26,6 @@ export const getProcess = async (id) => {
 
 export const updateProcess = async (id, updatedProcess) => {
   try {
-    console.log(JSON.stringify(updatedProcess));
-    console.log(id);
     const { data } = await axios.put(
       `${API_URL_CompanyProcesses}/${id}`,
       updatedProcess,

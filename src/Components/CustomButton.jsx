@@ -3,12 +3,14 @@ export const CustomButton = ({
   handleClick,
   classButton,
   disabledButton = false,
+  type = 'button',
 }) => {
   return (
     <button
       className={classButton}
       onClick={handleClick}
       disabled={disabledButton}
+      type={type}
     >
       {descriptionButton}
     </button>

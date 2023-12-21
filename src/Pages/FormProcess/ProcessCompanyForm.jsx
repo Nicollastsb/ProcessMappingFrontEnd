@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { CustomButton } from '../../Components/CustomButton';
 import {
   createProcess,
+  deleteProcess,
   getAreas,
   getProcess,
   updateProcess,
@@ -18,33 +19,22 @@ export const ProcessCompanyForm = () => {
     id: null,
     name: '',
     description: '',
-    areaId: '52ff1cdf-145a-4b11-413b-08dc0031ea19',
+    areaId: null,
     subProcesses: [],
     areaName: '',
     changed: null,
     deleted: null,
     order: null,
   });
-
   const [areas, setAreas] = useState([]);
-  const [subProcesses, setSubProcess] = useState([]);
-  function addSubProcess(item) {
-    const itensCopy = Array.from(subProcesses);
-    itensCopy.push(item);
-    setSubProcess(itensCopy);
-    setDataForm((prev) => ({ ...prev, subProcesses: itensCopy }));
-  }
-
-  const addNewSubProcess = (newSubProcess) => {
-    addSubProcess(newSubProcess);
-  };
+  const [validated, setValidated] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchData = async () => {
       if (id != 'new') {
         const process = await getProcess(id);
         setDataForm(process);
-        setSubProcess(process.subProcesses);
       }
     };
 
@@ -57,14 +47,56 @@ export const ProcessCompanyForm = () => {
     fetchData();
   }, []);
 
-  const navigate = useNavigate();
-  const submitProcess = async () => {
-    if (id != 'new') {
-      const process = await updateProcess(id, dataForm);
+  const addNewSubProcess = (newSubProcess) => {
+    const processOrders = dataForm.subProcesses.map((process) => process.order);
+    newSubProcess.order =
+      processOrders.length > 0 ? Math.max.apply(null, processOrders) + 1 : 1;
+    const itensCopy = Array.from(dataForm.subProcesses);
+    itensCopy.push(newSubProcess);
+    setDataForm((prev) => ({ ...prev, subProcesses: itensCopy }));
+  };
+
+  const editSubProcess = (editedSubProcess) => {
+    editedSubProcess.changed = true;
+    const editedSubProcesses = dataForm.subProcesses.map((sub) =>
+      sub.order === editedSubProcess.order ? editedSubProcess : sub,
+    );
+    setDataForm((prev) => ({ ...prev, subProcesses: editedSubProcesses }));
+  };
+
+  const deleteSubProcess = async (subProcess) => {
+    let remainingSubProcesses = [];
+    if (subProcess.id) {
+      const deletedId = await deleteProcess(subProcess.id);
+      remainingSubProcesses = dataForm.subProcesses.filter(
+        (sub) => sub.id !== deletedId,
+      );
     } else {
+      remainingSubProcesses = dataForm.subProcesses.filter(
+        (sub) => sub.order !== subProcess.order,
+      );
+    }
+    setDataForm((prev) => ({ ...prev, subProcesses: remainingSubProcesses }));
+  };
+
+  const submitProcess = async () => {
+    if (id == 'new') {
       const process = await createProcess(dataForm);
       navigate(`/ProcessCompanyForm/${process.id}`);
+    } else {
+      const process = await updateProcess(id, dataForm);
+      navigate(`/`);
     }
+  };
+
+  const handleSubmit = async (event) => {
+    const form = event.currentTarget;
+    if (form.checkValidity() === false) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    setValidated(true);
+    await submitProcess();
   };
 
   return (
@@ -74,8 +106,8 @@ export const ProcessCompanyForm = () => {
           <h2 style={{ textAlign: 'center' }}>
             {id == 'new' ? 'Novo processo' : dataForm.name}
           </h2>
-          <Form>
-            <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
+          <Form noValidate validated={validated} onSubmit={handleSubmit}>
+            <Form.Group className="mb-3" controlId="formInputNameProcess">
               <Form.Label>Nome</Form.Label>
               <Form.Control
                 type="text"
@@ -87,11 +119,15 @@ export const ProcessCompanyForm = () => {
                   })
                 }
                 value={dataForm && dataForm.name}
+                required
               />
+              <Form.Control.Feedback type="invalid">
+                Preencha o campo.
+              </Form.Control.Feedback>
             </Form.Group>
             <Form.Group
               className="mb-3"
-              controlId="exampleForm.ControlTextarea1"
+              controlId="formInputDescriptionProcess"
             >
               <Form.Label>Descrição</Form.Label>
               <Form.Control
@@ -106,45 +142,47 @@ export const ProcessCompanyForm = () => {
                 value={dataForm && dataForm.description}
               />
             </Form.Group>
-            <Form.Group className="mb-3" controlId="exampleForm.ControlInput1">
+            <Form.Group className="mb-3" controlId="formInputAreaProcess">
               <Form.Label>Área</Form.Label>
               <Form.Select
-                aria-label="Default select example"
-                disabled
+                aria-label="Áreas"
                 onChange={(e) =>
                   setDataForm({
                     ...dataForm,
                     areaId: e.target.value,
                   })
                 }
-                defaultValue={
-                  dataForm && dataForm.AreaId
-                    ? dataForm.AreaId
-                    : '52ff1cdf-145a-4b11-413b-08dc0031ea19'
-                }
+                defaultValue={dataForm && dataForm.AreaId && dataForm.AreaId}
               >
                 <option>Selecione</option>
-                <option value="52ff1cdf-145a-4b11-413b-08dc0031ea19">
-                  Pessoas
-                </option>
+                {areas &&
+                  areas.length > 0 &&
+                  areas.map((item, index) => (
+                    <option value={item.id} key={index}>
+                      {item.name}
+                    </option>
+                  ))}
               </Form.Select>
             </Form.Group>
+            <Form.Group>
+              <CustomTableSubProcess
+                data={dataForm.subProcesses}
+                newSubProcess={addNewSubProcess}
+                editSubProcess={editSubProcess}
+                areaId={dataForm.areaId}
+                deleteSubProcess={deleteSubProcess}
+              />
+            </Form.Group>
+            <CustomButton
+              type={'submit'}
+              descriptionButton={'Salvar'}
+              //handleClick={() => submitProcess()}
+              classButton={'btn btn-success'}
+            />
           </Form>
         </Row>
-        <Row>
-          <CustomTableSubProcess
-            data={subProcesses}
-            newSubProcess={addNewSubProcess}
-            areaId={dataForm.areaId}
-          />
-        </Row>
-        <Row>
-          <CustomButton
-            descriptionButton={'Salvar'}
-            handleClick={() => submitProcess()}
-            classButton={'btn btn-success'}
-          />
-        </Row>
+        <Row></Row>
+        <Row></Row>
       </Container>
     </Fragment>
   );
